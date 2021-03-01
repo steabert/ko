@@ -11,15 +11,11 @@ import (
 func main() {
 	var public string
 	var backend string
-	flag.StringVar(&public, "public", "", "directory or archive to serve files from")
+	flag.StringVar(&public, "public", ".", "directory or archive to serve files from")
 	flag.StringVar(&backend, "backend", "", "fallback backend")
 	flag.Parse()
 
-	staticRouter, err := router.NewStaticRouter(public)
-	if err != nil {
-		fmt.Println("unable to initialize static router: ", err.Error())
-		return
-	}
+	staticRouter := router.NewStaticRouter(public)
 	proxyRouter, err := router.NewProxyRouter(backend)
 	if err != nil {
 		fmt.Println("unable to initialize proxy router: ", err.Error())
