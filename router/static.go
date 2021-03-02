@@ -7,36 +7,17 @@ import (
 	"path"
 )
 
-// StaticRouter serves files relative to a root directory
-type StaticRouter struct {
-	root      string
-}
-
-// NewStaticRouter creates a router that can serve static content
-func NewStaticRouter(root string) *StaticRouter {
-	return &StaticRouter{root: root}
-
-}
-
-// CanRoute confirms if a path can be served by the router
-func (router StaticRouter) CanRoute(route string) bool {
-	fp := path.Join(router.root, route)
-	s, err := os.Stat(fp)
-	if err != nil {
-		return false
+// NewFileRouter creates a router that can serve static content
+func NewFileRouter(root string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fp := path.Join(root, r.URL.Path)
+			s, err := os.Stat(fp)
+			if err == nil && !s.IsDir() {
+				fmt.Println("serving: ", fp)
+				http.ServeFile(w, r, fp)
+			}
+			next.ServeHTTP(w, r)
+		})
 	}
-	return !s.IsDir()
-}
-
-// ServeHTTP
-func (router StaticRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !router.CanRoute(r.URL.Path) {
-		http.Error(w, "File not found", http.StatusNotFound)
-		return
-	}
-	fp := path.Join(router.root, r.URL.Path)
-	// If file path exists, serve from file system
-	fmt.Println("serving: ", fp)
-	http.ServeFile(w, r, fp)
-	return
 }
