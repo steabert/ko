@@ -4,8 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 
-	"github.com/steabert/ko/router"
+	"github.com/steabert/ko/lib"
 )
 
 func main() {
@@ -15,21 +16,20 @@ func main() {
 	flag.StringVar(&backend, "backend", "", "fallback backend")
 	flag.Parse()
 
-	staticRouter := router.NewStaticRouter(public)
-	proxyRouter, err := router.NewProxyRouter(backend)
-	if err != nil {
-		fmt.Println("unable to initialize proxy router: ", err.Error())
-		return
-	}
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if staticRouter.CanRoute(r.URL.Path) {
-			fmt.Printf("... [%s] => %s\n", public, r.URL.Path)
-			staticRouter.ServeHTTP(w, r)
-		} else {
-			fmt.Printf("... [%s] => %s\n", backend, r.URL.Path)
-			proxyRouter.ServeHTTP(w, r)
+	var handler http.Handler = nil
+
+	if backend != "" {
+		backendURL, err := url.Parse(backend)
+		if err == nil {
+			fmt.Println("invalid backend URL: ", err.Error())
+			return
 		}
-	})
+		handler = lib.NewProxyMiddleware(*backendURL)(handler)
+	}
+
+	if public != "" {
+		handler = lib.NewStaticMiddleware(public)(handler)
+	}
 
 	host := "127.0.0.1:4080"
 	fmt.Printf("🐮 listening on %s, what would you like me to serve? ...\n", host)

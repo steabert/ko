@@ -1,4 +1,4 @@
-package router
+package lib
 
 import (
 	"archive/zip"

@@ -1,28 +1,23 @@
-package router
+package lib
 
 import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 // ProxyRouter routes requests to another server
 type ProxyRouter struct {
-	host string
-}
-
-// NewProxyRouter creates a proxy router
-func NewProxyRouter(host string) (*ProxyRouter, error) {
-	router := ProxyRouter{host: host}
-	return &router, nil
+	backend url.URL
 }
 
 // handleHTTP proxies regular HTTP requests
 func (router ProxyRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r)
-	r.Host = router.host
-	r.URL.Scheme = "https"
-	r.URL.Host = router.host
+	r.Host = router.backend.Host
+	r.URL.Scheme = router.backend.Scheme
+	r.URL.Host = router.backend.Host
 	rsp, err := http.DefaultTransport.RoundTrip(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
@@ -96,4 +91,17 @@ func (router ProxyRouter) handleUpgrade(w http.ResponseWriter, r *http.Request, 
 func pipeStreams(dst io.Writer, src io.Reader, errc chan<- error) {
 	_, err := io.Copy(dst, src)
 	errc <- err
+}
+
+// NewProxyMiddleware creates a proxy router
+func NewProxyMiddleware(backend url.URL) func(http.Handler) http.Handler {
+	router := ProxyRouter{backend: backend}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			router.ServeHTTP(w, r)
+			if next != nil {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
 }
