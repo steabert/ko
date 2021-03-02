@@ -15,7 +15,7 @@ func main() {
 	flag.StringVar(&backend, "backend", "", "fallback backend")
 	flag.Parse()
 
-	staticRouter := router.NewStaticRouter(public)
+	staticRouter := router.NewFileRouter(public)
 	proxyRouter, err := router.NewProxyRouter(backend)
 	if err != nil {
 		fmt.Println("unable to initialize proxy router: ", err.Error())

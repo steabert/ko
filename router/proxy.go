@@ -4,17 +4,49 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 // ProxyRouter routes requests to another server
 type ProxyRouter struct {
-	host string
+	backend url.URL
 }
 
 // NewProxyRouter creates a proxy router
-func NewProxyRouter(host string) (*ProxyRouter, error) {
-	router := ProxyRouter{host: host}
-	return &router, nil
+func NewProxyRouter(backend url.URL) func(http.Handler) http.Handler {
+	router := ProxyRouter{backend: backend}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Host = backend.Host
+			r.URL.Scheme = backend.Scheme
+			r.URL.Host = backend.Host
+			rsp, err := http.DefaultTransport.RoundTrip(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusServiceUnavailable)
+				return
+			}
+
+			// If we are dealing with a websocket handshake,
+			// hijack the connection and we're done
+			if rsp.StatusCode == http.StatusSwitchingProtocols {
+				fmt.Println("upgrading connection...")
+				router.handleUpgrade(w, r, rsp)
+				return
+			}
+
+			// Transfer the roundtrip response to the response writer
+			defer rsp.Body.Close()
+			header := w.Header()
+			for key, values := range rsp.Header {
+				for _, value := range values {
+					header.Add(key, value)
+				}
+			}
+			w.WriteHeader(rsp.StatusCode)
+			io.Copy(w, rsp.Body)
+		})
+
+	}
 }
 
 // handleHTTP proxies regular HTTP requests

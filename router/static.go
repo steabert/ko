@@ -12,12 +12,20 @@ func NewFileRouter(root string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fp := path.Join(root, r.URL.Path)
+
 			s, err := os.Stat(fp)
 			if err == nil && !s.IsDir() {
 				fmt.Println("serving: ", fp)
 				http.ServeFile(w, r, fp)
+				return
 			}
-			next.ServeHTTP(w, r)
+
+			if next != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			http.Error(w, "File not found", http.StatusNotFound)
 		})
 	}
 }

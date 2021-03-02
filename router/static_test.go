@@ -1,34 +1,44 @@
 package router_test
 
 import (
+	"log"
 	"net/http"
-	"net/url"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/steabert/ko/router"
 )
 
-type Spy struct {
-	Called bool
+type CallRouter struct {
+	Called *bool
 }
 
-func (s Spy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.Called = true
+func (s CallRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	*s.Called = true
 }
 
-func TestCanRoute(t *testing.T) {
-	fallback := Spy{Called: false}
-	router := router.NewFileRouter(".")
-	handler := router(fallback)
-	handler.ServeHTTP(http.ResponseWriter{}, &http.Request{URL: &url.URL{Path: "static.go"}})
-	if !r.CanRoute("static.go") {
-		t.Fatal("expected files but not found")
+func TestNonExistent(t *testing.T) {
+	middleware := router.NewFileRouter(".")
+
+	ts := httptest.NewServer(middleware(nil))
+	rsp, err := http.Get(ts.URL + "/nonexistent")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if rsp.StatusCode != 404 {
+		log.Fatal("expected file not found")
 	}
 }
 
-func TestCantRoute(t *testing.T) {
-	r := router.NewFileRouter(".")
-	if r.CanRoute("missing.txt") {
-		t.Fatal("expected file to be missing")
+func TestExistent(t *testing.T) {
+	middleware := router.NewFileRouter(".")
+
+	ts := httptest.NewServer(middleware(nil))
+	rsp, err := http.Get(ts.URL + "/static.go")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if rsp.StatusCode != 200 {
+		log.Fatal("expected file not found")
 	}
 }
