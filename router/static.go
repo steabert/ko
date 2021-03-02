@@ -9,18 +9,17 @@ import (
 
 // StaticRouter serves files relative to a root directory
 type StaticRouter struct {
-	root      string
+	root string
 }
 
 // NewStaticRouter creates a router that can serve static content
 func NewStaticRouter(root string) *StaticRouter {
+	// TODO: should we get an absolute path here for root?
 	return &StaticRouter{root: root}
-
 }
 
 // CanRoute confirms if a path can be served by the router
-func (router StaticRouter) CanRoute(route string) bool {
-	fp := path.Join(router.root, route)
+func (router StaticRouter) CanRoute(fp string) bool {
 	s, err := os.Stat(fp)
 	if err != nil {
 		return false
@@ -30,11 +29,11 @@ func (router StaticRouter) CanRoute(route string) bool {
 
 // ServeHTTP
 func (router StaticRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !router.CanRoute(r.URL.Path) {
+	fp := path.Join(router.root, r.URL.Path)
+	if !router.CanRoute(fp) {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}
-	fp := path.Join(router.root, r.URL.Path)
 	// If file path exists, serve from file system
 	fmt.Println("serving: ", fp)
 	http.ServeFile(w, r, fp)
