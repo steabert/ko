@@ -14,7 +14,6 @@ type ProxyRouter struct {
 
 // handleHTTP proxies regular HTTP requests
 func (router ProxyRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r)
 	r.Host = router.backend.Host
 	r.URL.Scheme = router.backend.Scheme
 	r.URL.Host = router.backend.Host
@@ -27,10 +26,12 @@ func (router ProxyRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If we are dealing with a websocket handshake,
 	// hijack the connection and we're done
 	if rsp.StatusCode == http.StatusSwitchingProtocols {
-		fmt.Println("upgrading connection...")
+		fmt.Println("...connection upgrade on: ", r.URL.Path)
 		router.handleUpgrade(w, r, rsp)
 		return
 	}
+
+	fmt.Println("...relay on: ", r.URL.Path)
 
 	// Transfer the roundtrip response to the response writer
 	defer rsp.Body.Close()

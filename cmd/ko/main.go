@@ -12,7 +12,7 @@ import (
 func main() {
 	var public string
 	var backend string
-	flag.StringVar(&public, "public", ".", "directory or archive to serve files from")
+	flag.StringVar(&public, "public", "", "directory or archive to serve files from")
 	flag.StringVar(&backend, "backend", "", "fallback backend")
 	flag.Parse()
 
@@ -20,14 +20,16 @@ func main() {
 
 	if backend != "" {
 		backendURL, err := url.Parse(backend)
-		if err == nil {
+		if err != nil {
 			fmt.Println("invalid backend URL: ", err.Error())
 			return
 		}
+		fmt.Println("...enabling reverse proxy: ", backendURL)
 		handler = lib.NewProxyMiddleware(*backendURL)(handler)
 	}
 
 	if public != "" {
+		fmt.Println("...serving from folder: ", public)
 		handler = lib.NewStaticMiddleware(public)(handler)
 	}
 
