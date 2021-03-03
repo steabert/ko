@@ -1,15 +1,19 @@
 package lib
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // ProxyRouter routes requests to another server
 type ProxyRouter struct {
-	backend url.URL
+	backend   url.URL
+	transport http.RoundTripper
 }
 
 // handleHTTP proxies regular HTTP requests
@@ -17,7 +21,7 @@ func (router ProxyRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Host = router.backend.Host
 	r.URL.Scheme = router.backend.Scheme
 	r.URL.Host = router.backend.Host
-	rsp, err := http.DefaultTransport.RoundTrip(r)
+	rsp, err := router.transport.RoundTrip(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
@@ -96,7 +100,31 @@ func pipeStreams(dst io.Writer, src io.Reader, errc chan<- error) {
 
 // NewProxyMiddleware creates a proxy router
 func NewProxyMiddleware(backend url.URL) func(http.Handler) http.Handler {
-	router := ProxyRouter{backend: backend}
+	// Keep TLS config.
+	tlsConfig := &tls.Config{}
+	tlsConfig.InsecureSkipVerify = true
+
+	var transport http.RoundTripper = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       tlsConfig,
+		// Set this value so that the underlying transport round-tripper
+		// doesn't try to auto decode the body of objects with
+		// content-encoding set to `gzip`.
+		//
+		// Refer:
+		//    https://golang.org/src/net/http/transport.go?h=roundTrip#L1843
+		DisableCompression: true,
+	}
+
+	router := ProxyRouter{backend: backend, transport: transport}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			router.ServeHTTP(w, r)
