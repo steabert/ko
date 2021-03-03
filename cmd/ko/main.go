@@ -38,11 +38,11 @@ func main() {
 	var host string
 	if https {
 		host = "127.0.0.1:4443"
-		fmt.Printf("🐮 listening on %s, what would you like me to serve? ...\n", host)
+		fmt.Printf("🐮 listening on https://%s, what would you like me to serve? ...\n", host)
 		http.ListenAndServeTLS(host, "server.cert", "server.key", handler)
 	} else {
 		host = "127.0.0.1:4080"
-		fmt.Printf("🐮 listening on %s, what would you like me to serve? ...\n", host)
+		fmt.Printf("🐮 listening on http://%s, what would you like me to serve? ...\n", host)
 		http.ListenAndServe(host, handler)
 	}
 }
