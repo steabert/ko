@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+// TODO: instead of using a root dir directly, give the main
+// middleware the possibility to look up and read file content,
+// provided by either a dir or zip archive reader.
+
 // NewStaticMiddleware creates a router that:
 //  - serves static content from file if available
 //  - passes request to next handler if not
@@ -23,6 +27,7 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 				p = path.Join(p, "index.html")
 			}
 
+			// TODO: do some proper negotiation, support other encodings
 			encodings := strings.Split(r.Header.Get("Accept-Encoding"), ",")
 			for _, enc := range encodings {
 				switch strings.Trim(enc, "") {
@@ -38,6 +43,7 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 						return
 					}
 					w.Header().Add("Content-Encoding", "gzip")
+					// TODO: use just the cleaned r.URL.Path instead of p
 					http.ServeContent(w, r, p, info.ModTime(), f)
 					return
 				}

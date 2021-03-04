@@ -47,6 +47,7 @@ func main() {
 
 	fmt.Printf("🐮 listening on %s://%s, what would you like me to serve? ...\n", scheme, host)
 	if secure {
+		//TODO: include these somehow in the code as constants (then we can run this from anywhere)
 		http.ListenAndServeTLS(host, "server.cert", "server.key", handler)
 	} else {
 		http.ListenAndServe(host, handler)
