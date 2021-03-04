@@ -12,10 +12,12 @@ import (
 func main() {
 	var public string
 	var backend string
-	var https bool
+	var secure bool
+	var port int
 	flag.StringVar(&public, "public", "", "directory or archive to serve files from")
 	flag.StringVar(&backend, "backend", "", "fallback URL")
-	flag.BoolVar(&https, "secure", false, "use HTTPS")
+	flag.BoolVar(&secure, "secure", false, "use HTTPS")
+	flag.IntVar(&port, "port", 8080, "port number")
 	flag.Parse()
 
 	var handler http.Handler = nil
@@ -35,14 +37,18 @@ func main() {
 		handler = lib.NewStaticMiddleware(public)(handler)
 	}
 
-	var host string
-	if https {
-		host = "127.0.0.1:4443"
-		fmt.Printf("🐮 listening on https://%s, what would you like me to serve? ...\n", host)
+	var scheme string
+	if secure {
+		scheme = "https"
+	} else {
+		scheme = "http"
+	}
+	host := fmt.Sprintf("localhost:%d", port)
+
+	fmt.Printf("🐮 listening on %s://%s, what would you like me to serve? ...\n", scheme, host)
+	if secure {
 		http.ListenAndServeTLS(host, "server.cert", "server.key", handler)
 	} else {
-		host = "127.0.0.1:4080"
-		fmt.Printf("🐮 listening on http://%s, what would you like me to serve? ...\n", host)
 		http.ListenAndServe(host, handler)
 	}
 }
