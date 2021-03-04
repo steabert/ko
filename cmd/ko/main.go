@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/steabert/ko/lib"
+	"github.com/steabert/ko"
 )
 
 func main() {
@@ -29,12 +29,12 @@ func main() {
 			return
 		}
 		fmt.Println("...enabling reverse proxy: ", backendURL)
-		handler = lib.NewProxyMiddleware(*backendURL)(handler)
+		handler = ko.NewProxyMiddleware(*backendURL)(handler)
 	}
 
 	if public != "" {
 		fmt.Println("...serving from folder: ", public)
-		handler = lib.NewStaticMiddleware(public)(handler)
+		handler = ko.NewStaticMiddleware(public)(handler)
 	}
 
 	var scheme string

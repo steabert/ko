@@ -1,4 +1,4 @@
-package lib_test
+package ko_test
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/steabert/ko/lib"
+	"github.com/steabert/ko"
 )
 
 type CallRouter struct {
@@ -18,7 +18,7 @@ func (s CallRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestNonExistent(t *testing.T) {
-	middleware := lib.NewStaticMiddleware(".")
+	middleware := ko.NewStaticMiddleware(".")
 
 	ts := httptest.NewServer(middleware(nil))
 	rsp, err := http.Get(ts.URL + "/nonexistent")
@@ -31,7 +31,7 @@ func TestNonExistent(t *testing.T) {
 }
 
 func TestExistent(t *testing.T) {
-	middleware := lib.NewStaticMiddleware(".")
+	middleware := ko.NewStaticMiddleware(".")
 
 	ts := httptest.NewServer(middleware(nil))
 	rsp, err := http.Get(ts.URL + "/static.go")

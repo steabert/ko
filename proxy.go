@@ -1,4 +1,4 @@
-package lib
+package ko
 
 import (
 	"crypto/tls"
