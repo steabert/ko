@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"time"
 )
@@ -124,10 +125,13 @@ func NewProxyMiddleware(backend url.URL) func(http.Handler) http.Handler {
 		DisableCompression: true,
 	}
 
-	router := ProxyRouter{backend: backend, transport: transport}
+	// router := ProxyRouter{backend: backend, transport: transport}
+	proxy := httputil.NewSingleHostReverseProxy(&backend)
+	proxy.Transport = transport
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			router.ServeHTTP(w, r)
+			proxy.ServeHTTP(w, r)
 			if next != nil {
 				next.ServeHTTP(w, r)
 			}
