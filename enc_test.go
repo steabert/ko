@@ -7,11 +7,11 @@ import (
 	"github.com/steabert/ko"
 )
 
-func TestParseQValues(t *testing.T) {
+func TestAcceptedEncodings(t *testing.T) {
 	header := make(http.Header)
 	header.Add("Accept-Encoding", "gzip;q=0.8, br;q=0.5 , identity")
 
-	accepts := ko.ParseAccept(header, "Accept-Encoding") // [gzip br identity]
+	accepts := ko.AcceptedEncodings(header, "Accept-Encoding") // [gzip br identity]
 	if accepts[0] != "gzip" {
 		t.Fatalf("expected: %s, actual: %s", "gzip", accepts[0])
 	}

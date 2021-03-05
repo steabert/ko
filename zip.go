@@ -3,13 +3,12 @@ package ko
 import (
 	"archive/zip"
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"path"
-	"strings"
 )
 
+// NewZIPMiddleware serves files from within a ZIP archive
 func NewZIPMiddleware(zipPath, prefix string) func(http.Handler) http.Handler {
 	files := map[string]*zip.File{}
 	z, err := zip.OpenReader(zipPath)
@@ -17,20 +16,19 @@ func NewZIPMiddleware(zipPath, prefix string) func(http.Handler) http.Handler {
 		panic(err)
 	}
 	for _, file := range z.File {
-		fmt.Println(file.Name)
 		files[file.Name] = file
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			name := r.URL.Path
-			// Normalize directory routes to index.html
-			if strings.HasSuffix(name, "/") {
-				name = path.Join(name, "index.html")
-			}
-
+			name := path.Clean(r.URL.Path)
 			p := path.Join(prefix, name)
 
-			encodings := ParseAccept(r.Header, "Accept-Encoding")
+			// Normalize directory routes to index.html
+			if _, ok := files[p+"/"]; ok {
+				p = path.Join(p, "index.html")
+			}
+
+			encodings := AcceptedEncodings(r.Header, "Accept-Encoding")
 			for _, enc := range encodings {
 				suffix, exists := knownEncSuffix[enc]
 				if !exists {
@@ -52,21 +50,11 @@ func NewZIPMiddleware(zipPath, prefix string) func(http.Handler) http.Handler {
 				return
 			}
 
-			f, ok := files[p]
-			if !ok {
-				if next != nil {
-					next.ServeHTTP(w, r)
-				} else {
-					http.Error(w, "File not found", http.StatusNotFound)
-				}
-				return
+			if next != nil {
+				next.ServeHTTP(w, r)
+			} else {
+				http.Error(w, "File not found", http.StatusNotFound)
 			}
-			b, err := readAll(f)
-			if err != nil {
-				http.Error(w, "Internal error", http.StatusInternalServerError)
-				return
-			}
-			http.ServeContent(w, r, name, f.ModTime(), bytes.NewReader(b))
 		})
 	}
 }

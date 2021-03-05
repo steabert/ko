@@ -8,14 +8,7 @@ import (
 	"path/filepath"
 )
 
-// TODO: instead of using a root dir directly, give the main
-// middleware the possibility to look up and read file content,
-// provided by either a dir or zip archive reader.
-
-// NewStaticMiddleware creates a router that:
-//  - serves static content from file if available
-//  - passes request to next handler if not
-// Note that this middleware terminates if the file was found!
+// NewStaticMiddleware serves files from a local folder
 func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -28,8 +21,7 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 				p = path.Join(p, "index.html")
 			}
 
-			encodings := ParseAccept(r.Header, "Accept-Encoding")
-			fmt.Println("encodings", encodings)
+			encodings := AcceptedEncodings(r.Header, "Accept-Encoding")
 			for _, enc := range encodings {
 				suffix, exists := knownEncSuffix[enc]
 				if !exists {
@@ -40,24 +32,14 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 				if info, err := os.Stat(fp); err == nil {
 					f, err := os.Open(fp)
 					if err != nil {
-						http.Error(w, "", http.StatusForbidden)
+						http.Error(w, "Internal error", http.StatusInternalServerError)
 						return
 					}
 					w.Header().Add("Content-Encoding", enc)
+					fmt.Println("serving: ", w)
 					http.ServeContent(w, r, name, info.ModTime(), f)
 					return
 				}
-			}
-
-			fp := filepath.FromSlash(p)
-			if info, err = os.Stat(fp); err == nil {
-				f, err := os.Open(fp)
-				if err != nil {
-					http.Error(w, "", http.StatusForbidden)
-					return
-				}
-				http.ServeContent(w, r, name, info.ModTime(), f)
-				return
 			}
 
 			if next != nil {

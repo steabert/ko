@@ -4,6 +4,9 @@ OPTS = CGO_ENABLED=0
 build:
 	go build -v -o ko cmd/ko/main.go
 
+test:
+	go test -v ./...
+
 windows.goos: EXT = .exe
 
 %.goos:

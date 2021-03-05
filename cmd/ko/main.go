@@ -10,16 +10,14 @@ import (
 )
 
 func main() {
-	var public string
 	var backend string
+	var root string
 	var archive string
-	var prefix string
 	var secure bool
 	var port int
-	flag.StringVar(&public, "public", "", "directory to serve files from")
 	flag.StringVar(&backend, "backend", "", "fallback URL")
+	flag.StringVar(&root, "root", ".", "location of files to host (dir or path into zip archive)")
 	flag.StringVar(&archive, "archive", "", "archive to serve files from")
-	flag.StringVar(&prefix, "prefix", "", "prefix of the archive")
 	flag.BoolVar(&secure, "secure", false, "use HTTPS")
 	flag.IntVar(&port, "port", 8080, "port number")
 	flag.Parse()
@@ -37,12 +35,12 @@ func main() {
 		handler = ko.NewProxyMiddleware(*backendURL)(handler)
 	}
 
-	if public != "" {
-		stack = append(stack, fmt.Sprintf("%s", public))
-		handler = ko.NewStaticMiddleware(public)(handler)
-	} else if archive != "" {
+	if archive != "" {
 		stack = append(stack, fmt.Sprintf("%s", archive))
-		handler = ko.NewZIPMiddleware(archive, prefix)(handler)
+		handler = ko.NewZIPMiddleware(archive, root)(handler)
+	} else if root != "" {
+		stack = append(stack, fmt.Sprintf("%s", root))
+		handler = ko.NewStaticMiddleware(root)(handler)
 	}
 
 	// TODO: this should be checked by the args
