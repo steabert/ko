@@ -22,19 +22,30 @@ func main() {
 
 	var handler http.Handler = nil
 
+	stack := make([]string, 0, 2)
 	if backend != "" {
 		backendURL, err := url.Parse(backend)
 		if err != nil {
 			fmt.Println("invalid backend URL: ", err.Error())
 			return
 		}
-		fmt.Println("...enabling reverse proxy: ", backendURL)
+		stack = append(stack, fmt.Sprintf("%s", backendURL))
 		handler = ko.NewProxyMiddleware(*backendURL)(handler)
 	}
 
 	if public != "" {
-		fmt.Println("...serving from folder: ", public)
+		stack = append(stack, fmt.Sprintf("%s", public))
 		handler = ko.NewStaticMiddleware(public)(handler)
+	}
+
+	// TODO: this should be checked by the args
+	if handler == nil {
+		panic("🐮 I'm useless without a handler")
+	}
+
+	fmt.Println("🐮 Serving from (in order of priority) ...")
+	for i := len(stack); i > 0; i-- {
+		fmt.Println("->", stack[i-1])
 	}
 
 	var scheme string
@@ -45,7 +56,7 @@ func main() {
 	}
 	host := fmt.Sprintf("localhost:%d", port)
 
-	fmt.Printf("🐮 listening on %s://%s, what would you like me to serve? ...\n", scheme, host)
+	fmt.Printf("listening on %s://%s ...\n", scheme, host)
 	if secure {
 		//TODO: include these somehow in the code as constants (then we can run this from anywhere)
 		http.ListenAndServeTLS(host, "server.cert", "server.key", handler)
