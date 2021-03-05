@@ -11,7 +11,8 @@ const (
 	whitespace = " "
 )
 
-func parseAccept(header http.Header, key string) []string {
+// ParseAccept extracts accepted values from an Accept- header
+func ParseAccept(header http.Header, key string) []string {
 	accepts := make([]string, 0, 8)
 
 	for _, headerValue := range header.Values(key) {

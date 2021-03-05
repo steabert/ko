@@ -9,6 +9,7 @@ import (
 
 var knownEncSuffix = map[string]string{
 	"gzip": ".gz",
+	"br":   ".br",
 }
 
 // TODO: instead of using a root dir directly, give the main
@@ -31,8 +32,7 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 				p = path.Join(p, "index.html")
 			}
 
-			// TODO: do some proper negotiation, support other encodings
-			encodings := parseAccept(r.Header, "Accept-Encoding")
+			encodings := ParseAccept(r.Header, "Accept-Encoding")
 			for _, enc := range encodings {
 				suffix, exists := knownEncSuffix[enc]
 				if !exists {
