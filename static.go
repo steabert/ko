@@ -5,8 +5,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 )
+
+var knownEncSuffix = map[string]string{
+	"gzip": ".gz",
+}
 
 // TODO: instead of using a root dir directly, give the main
 // middleware the possibility to look up and read file content,
@@ -19,7 +22,8 @@ import (
 func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			p := path.Join(root, r.URL.Path)
+			name := path.Clean(r.URL.Path)
+			p := path.Join(root, name)
 
 			// Normalize directory routes to index.html
 			info, err := os.Stat(filepath.FromSlash(p))
@@ -28,23 +32,22 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 			}
 
 			// TODO: do some proper negotiation, support other encodings
-			encodings := strings.Split(r.Header.Get("Accept-Encoding"), ",")
+			encodings := parseAccept(r.Header, "Accept-Encoding")
 			for _, enc := range encodings {
-				switch strings.Trim(enc, "") {
-				case "gzip":
-					fp := filepath.FromSlash(p + ".gz")
-					info, err := os.Stat(fp)
-					if err != nil {
-						break
-					}
+				suffix, exists := knownEncSuffix[enc]
+				if !exists {
+					continue
+				}
+
+				fp := filepath.FromSlash(p + suffix)
+				if info, err := os.Stat(fp); err == nil {
 					f, err := os.Open(fp)
 					if err != nil {
 						http.Error(w, "", http.StatusForbidden)
 						return
 					}
-					w.Header().Add("Content-Encoding", "gzip")
-					// TODO: use just the cleaned r.URL.Path instead of p
-					http.ServeContent(w, r, p, info.ModTime(), f)
+					w.Header().Add("Content-Encoding", enc)
+					http.ServeContent(w, r, name, info.ModTime(), f)
 					return
 				}
 			}
@@ -56,7 +59,7 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 					http.Error(w, "", http.StatusForbidden)
 					return
 				}
-				http.ServeContent(w, r, p, info.ModTime(), f)
+				http.ServeContent(w, r, name, info.ModTime(), f)
 				return
 			}
 
