@@ -11,6 +11,12 @@ const (
 	whitespace = " "
 )
 
+var knownEncSuffix = map[string]string{
+	"gzip":     ".gz",
+	"br":       ".br",
+	"identity": "",
+}
+
 // ParseAccept extracts accepted values from an Accept- header
 func ParseAccept(header http.Header, key string) []string {
 	accepts := make([]string, 0, 8)

@@ -1,16 +1,12 @@
 package ko
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 )
-
-var knownEncSuffix = map[string]string{
-	"gzip": ".gz",
-	"br":   ".br",
-}
 
 // TODO: instead of using a root dir directly, give the main
 // middleware the possibility to look up and read file content,
@@ -33,6 +29,7 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 			}
 
 			encodings := ParseAccept(r.Header, "Accept-Encoding")
+			fmt.Println("encodings", encodings)
 			for _, enc := range encodings {
 				suffix, exists := knownEncSuffix[enc]
 				if !exists {

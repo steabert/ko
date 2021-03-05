@@ -9,23 +9,23 @@ import (
 )
 
 func TestReadArchiveExistingFile(t *testing.T) {
-	middleware := ko.NewZIPMiddleware("../testdir/tmp.zip")
+	middleware := ko.NewZIPMiddleware("testdir.zip", "testdir")
 
 	ts := httptest.NewServer(middleware(nil))
-	rsp, err := http.Get(ts.URL + "/tmp/file.html")
+	rsp, err := http.Get(ts.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if rsp.StatusCode != 200 {
-		t.Fatal("expected file.html to be found")
+		t.Fatal("expected index.html to be found")
 	}
 }
 
 func TestReadArchiveNoneExistingFile(t *testing.T) {
-	middleware := ko.NewZIPMiddleware("../testdir/tmp.zip")
+	middleware := ko.NewZIPMiddleware("testdir.zip", "testdir")
 
 	ts := httptest.NewServer(middleware(nil))
-	rsp, err := http.Get(ts.URL + "/tmp/missing.html")
+	rsp, err := http.Get(ts.URL + "/missing.html")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,7 @@
 package ko_test
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -45,7 +46,7 @@ func TestExistent(t *testing.T) {
 }
 
 func TestIndexExist(t *testing.T) {
-	middleware := ko.NewStaticMiddleware("../testdir")
+	middleware := ko.NewStaticMiddleware("testdir")
 
 	ts := httptest.NewServer(middleware(nil))
 	rsp, err := http.Get(ts.URL)
@@ -71,7 +72,7 @@ func TestIndexNoneExist(t *testing.T) {
 }
 
 func TestContentType(t *testing.T) {
-	middleware := ko.NewStaticMiddleware("../testdir")
+	middleware := ko.NewStaticMiddleware("testdir")
 
 	ts := httptest.NewServer(middleware(nil))
 	rsp, err := http.Get(ts.URL + "/index.html")
@@ -88,14 +89,19 @@ func TestContentType(t *testing.T) {
 }
 
 func TestContentType2(t *testing.T) {
-	middleware := ko.NewStaticMiddleware("../testdir")
+	middleware := ko.NewStaticMiddleware("testdir")
 
 	ts := httptest.NewServer(middleware(nil))
-	rsp, err := http.Get(ts.URL + "/test.js.gz")
+	rsp, err := http.Get(ts.URL + "/test.js")
+	fmt.Println("response", rsp)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ce := rsp.Header.Get("Content-Type")
+	ct := rsp.Header.Get("Content-Type")
+	if !strings.Contains(ct, "javascript") {
+		t.Fatalf("expected javascript got %s", ct)
+	}
+	ce := rsp.Header.Get("Content-Encoding")
 	if !strings.Contains(ce, "gzip") {
 		t.Fatalf("expected gzip got %s", ce)
 	}
