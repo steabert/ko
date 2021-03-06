@@ -36,21 +36,20 @@ func main() {
 	}
 
 	if archive != "" {
-		stack = append(stack, fmt.Sprintf("%s", archive))
+		stack = append(stack, fmt.Sprintf("%s@%s", archive, root))
 		handler = ko.NewZIPMiddleware(archive, root)(handler)
 	} else if root != "" {
 		stack = append(stack, fmt.Sprintf("%s", root))
 		handler = ko.NewStaticMiddleware(root)(handler)
 	}
 
-	// TODO: this should be checked by the args
 	if handler == nil {
 		panic("🐮 I'm useless without a handler")
 	}
 
 	fmt.Println("🐮 Serving from (in order of priority) ...")
 	for i := len(stack); i > 0; i-- {
-		fmt.Println("->", stack[i-1])
+		fmt.Println(" > ", stack[i-1])
 	}
 
 	var scheme string
@@ -62,10 +61,14 @@ func main() {
 	host := fmt.Sprintf("localhost:%d", port)
 
 	fmt.Printf("listening on %s://%s ...\n", scheme, host)
+
+	var err error
 	if secure {
-		//TODO: include these somehow in the code as constants (then we can run this from anywhere)
-		http.ListenAndServeTLS(host, "server.cert", "server.key", handler)
+		err = ko.ListenAndServeTLS(host, handler)
 	} else {
-		http.ListenAndServe(host, handler)
+		err = http.ListenAndServe(host, handler)
+	}
+	if err != nil {
+		fmt.Println("Server failed with: ", err.Error())
 	}
 }
