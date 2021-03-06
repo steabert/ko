@@ -1,7 +1,6 @@
 package ko
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -36,7 +35,6 @@ func NewStaticMiddleware(root string) func(http.Handler) http.Handler {
 						return
 					}
 					w.Header().Add("Content-Encoding", enc)
-					fmt.Println("serving: ", w)
 					http.ServeContent(w, r, name, info.ModTime(), f)
 					return
 				}

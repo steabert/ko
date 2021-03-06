@@ -12,34 +12,43 @@ import (
 func main() {
 	var backend string
 	var root string
-	var archive string
-	var secure bool
+	var zip string
+	var https bool
 	var port int
 	flag.StringVar(&backend, "backend", "", "fallback URL")
-	flag.StringVar(&root, "root", ".", "location of files to host (dir or path into zip archive)")
-	flag.StringVar(&archive, "archive", "", "archive to serve files from")
-	flag.BoolVar(&secure, "secure", false, "use HTTPS")
-	flag.IntVar(&port, "port", 8080, "port number")
+	flag.StringVar(&root, "root", ".", "directory or zip archive prefix")
+	flag.StringVar(&zip, "zip", "", "zip archive to serve files from")
+	flag.BoolVar(&https, "https", false, "use HTTPS (self-signed certificate)")
+	flag.IntVar(&port, "port", 8090, "port number")
 	flag.Parse()
+
+	var scheme string
+	if https {
+		scheme = "https"
+	} else {
+		scheme = "http"
+	}
+	host := fmt.Sprintf("localhost:%d", port)
+
+	fmt.Printf("🐮 listening on %s://%s\n", scheme, host)
 
 	var handler http.Handler = nil
 
-	stack := make([]string, 0, 2)
 	if backend != "" {
 		backendURL, err := url.Parse(backend)
 		if err != nil {
 			fmt.Println("invalid backend URL: ", err.Error())
 			return
 		}
-		stack = append(stack, fmt.Sprintf("%s", backendURL))
+		fmt.Printf("> serving from backend: %s\n", backendURL)
 		handler = ko.NewProxyMiddleware(*backendURL)(handler)
 	}
 
-	if archive != "" {
-		stack = append(stack, fmt.Sprintf("%s@%s", archive, root))
-		handler = ko.NewZIPMiddleware(archive, root)(handler)
+	if zip != "" {
+		fmt.Printf("> serving from archive: %s@%s\n", zip, root)
+		handler = ko.NewZIPMiddleware(zip, root)(handler)
 	} else if root != "" {
-		stack = append(stack, fmt.Sprintf("%s", root))
+		fmt.Printf("> serving from directory: %s\n", root)
 		handler = ko.NewStaticMiddleware(root)(handler)
 	}
 
@@ -47,23 +56,8 @@ func main() {
 		panic("🐮 I'm useless without a handler")
 	}
 
-	fmt.Println("🐮 Serving from (in order of priority) ...")
-	for i := len(stack); i > 0; i-- {
-		fmt.Println(" > ", stack[i-1])
-	}
-
-	var scheme string
-	if secure {
-		scheme = "https"
-	} else {
-		scheme = "http"
-	}
-	host := fmt.Sprintf("localhost:%d", port)
-
-	fmt.Printf("listening on %s://%s ...\n", scheme, host)
-
 	var err error
-	if secure {
+	if https {
 		err = ko.ListenAndServeTLS(host, handler)
 	} else {
 		err = http.ListenAndServe(host, handler)
