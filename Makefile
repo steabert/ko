@@ -1,19 +1,28 @@
-GOARCH = amd64
-OPTS = CGO_ENABLED=0
+GOOS = $(shell go env GOOS)
+GOARCH = $(shell go env GOARCH)
 
-build:
-	go build -v -o ko cmd/ko/main.go
+SRC = cmd/ko/main.go
+NAME = ko
+SUPPORTED_PLATFORMS = \
+	windows-amd64 \
+	linux-amd64 \
+	darwin-amd64
+
+debug:
+	go build -v -race -o $(NAME) $(SRC)
 
 test:
 	go test -v ./...
 
-windows.goos: EXT = .exe
+windows-%: EXT = .exe
 
-%.goos:
-	$(OPTS) GOOS=$* go build -ldflags="-s -w" -v -o ko-$*-$(GOARCH)$(EXT) cmd/ko/main.go
+$(SUPPORTED_PLATFORMS): OS = $(word 1,$(subst -, ,$*))
+$(SUPPORTED_PLATFORMS): ARCH = $(word 2,$(subst -, ,$*))
+%:
+	CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags="-s -w" -v -o $(NAME)-$(OS)-$(ARCH)$(EXT) $(SRC)
+
+.PHONY: build
+build: $(GOOS)-$(GOARCH)
 
 .PHONY: all
-all: windows.goos linux.goos darwin.goos
-
-run:
-	go run cmd/ko/main.go
+all: $(SUPPORTED_PLATFORMS)
